@@ -8,9 +8,13 @@ object data_mart extends MainWithSpark {
 
   val getDomain2FromUrl = udf{ url: String =>
     if (Option(url).nonEmpty) {
+      if (url.startsWith("www.")) Some(url.split('.').drop(1).mkString("."))
+      else Some(url)
+      /*
       val domainArray = url.split('.')
       if (domainArray.length > 1) Some(domainArray.takeRight(2).mkString("."))
       else domainArray.headOption
+      */
     } else {
       None
     }
@@ -78,7 +82,7 @@ object data_mart extends MainWithSpark {
       .collect().map(_.getString(0)).sorted
     val columnsExpressions =
       for (cat <- selectedCats)
-        yield sum(when(col("category") === lit(cat), 1).otherwise(0)).alias(cat)
+        yield sum(when(col("category") === lit(cat), 1).otherwise(expr("null"))).alias(cat)
 
     val result = uidAllLogs
       .groupBy("uid", "gender", "age_cat")

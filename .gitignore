@@ -2,3 +2,5 @@
 *.log
 *.jar
 .idea
+project/
+target/
