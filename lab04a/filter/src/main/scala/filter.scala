@@ -36,8 +36,10 @@ object filter extends MainWithSpark {
       .select("value.*")
       .withColumn("date",
         regexp_replace(from_unixtime(col("timestamp") / 1000).cast("date").cast("string"), "-", ""))
+      .withColumn("event_type_part", col("event_type"))
+      .withColumn("date_part", col("date"))
 
-    messagesDf.write.mode("overwrite").partitionBy("event_type", "date").json(pathToSave)
+    messagesDf.write.mode("overwrite").partitionBy("event_type_part", "date_part").json(pathToSave)
   }
 
   def main(args: Array[String]): Unit = {
