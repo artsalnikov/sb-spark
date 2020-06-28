@@ -11,10 +11,10 @@ object features extends MainWithSpark {
   }
 
   def visitsItems(): Unit = {
-    val webLogs = spark.read.json("hdfs:///labs/laba03/weblogs.json")
+    val webLogs = spark.read.json("/labs/laba03/weblogs.json")
       .filter(col("uid").isNotNull)
 
-    val visits = spark.read.parquet("hdfs:///user/artem.salnikov/users-items/20200429")
+    val visits = spark.read.parquet("users-items/20200429")
 
     val webVisitsParsed = webLogs
       .select(
@@ -94,7 +94,7 @@ object features extends MainWithSpark {
     val webVisitsResult = webVisitsVector.join(visits, Seq("uid"), "full")
       .withColumn("domain_features", calcNormDF(col("domain_vector"))).drop(col("domain_vector"))
 
-    webVisitsResult.write.mode("overwrite").parquet("hdfs:///user/artem.salnikov/features")
+    webVisitsResult.write.mode("overwrite").parquet("features")
   }
 
   def main(args: Array[String]): Unit = {
