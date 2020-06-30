@@ -48,7 +48,7 @@ object test extends MainWithSpark {
       .withColumn("url", col("visit").getItem("url"))
       .withColumn("domain", getDomain2FromUrl(expr("parse_url(url, 'HOST')")))
       .groupBy("uid")
-      .agg(collect_set("domain").alias("domains"))
+      .agg(collect_list("domain").alias("domains"))
       .select("uid", "domains")
 
     val model = PipelineModel.load(pipelinePath)
