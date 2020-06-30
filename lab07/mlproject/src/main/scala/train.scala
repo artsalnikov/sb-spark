@@ -19,6 +19,8 @@ object train extends MainWithSpark {
     val targetModelPath = spark.conf.get("spark.mlproject.targetpath")
 
     val webLogsSourceFeatures = spark.read.json(sourceDataPath)
+      .filter(col("uid").isNotNull)
+      .na.fill(0)
       .withColumn("visit", explode(col("visits")))
       .withColumn("url", col("visit").getItem("url"))
       .withColumn("domain", getDomain2FromUrl(expr("parse_url(url, 'HOST')")))

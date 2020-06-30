@@ -1,3 +1,5 @@
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.streaming.Trigger
@@ -19,6 +21,10 @@ object test extends MainWithSpark {
     val sourceTopic = spark.conf.get("spark.mlproject.sourcetopic") // топик Kafka, куда придут тестовые данные
     val targetTopic = spark.conf.get("spark.mlproject.targettopic") // топик Kafka, куда выдавать предсказания
 
+    val hdfs = FileSystem.get(new Configuration())
+    val path = new Path("checkpointsStreaming")
+    hdfs.delete(path, true)
+
     val kafkaReadParams = Map(
       "kafka.bootstrap.servers" -> "10.0.1.13:6667",
       "subscribe" -> sourceTopic,
@@ -37,7 +43,7 @@ object test extends MainWithSpark {
         StructField("visits", ArrayType(
           StructType(
             StructField("url", StringType, true) ::
-              StructField("timestamp", LongType, true) :: Nil), true
+              StructField("timestamp", LongType, true) :: Nil)
         ), true) :: Nil)
 
     val test = spark.readStream.format("kafka").options(kafkaReadParams).load
@@ -61,7 +67,7 @@ object test extends MainWithSpark {
       .format("kafka")
       .outputMode("update")
       .options(kafkaWriteParams)
-      .trigger(Trigger.ProcessingTime("2 seconds"))
+      .trigger(Trigger.ProcessingTime("10 seconds"))
       .start()
       .awaitTermination()
 
