@@ -1,6 +1,7 @@
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.ml.PipelineModel
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.{ArrayType, LongType, StringType, StructField, StructType}
@@ -49,27 +50,34 @@ object test extends MainWithSpark {
     val test = spark.readStream.format("kafka").options(kafkaReadParams).load
       .select(col("value").cast("string").alias("value"))
       .withColumn("value", from_json(col("value"), jsonSchema))
-      .withColumn("uid", col("value.uid"))
-      .withColumn("visit", explode(col("value.visits")))
-      .withColumn("url", col("visit").getItem("url"))
-      .withColumn("domain", getDomain2FromUrl(expr("parse_url(url, 'HOST')")))
-      .groupBy("uid")
-      .agg(collect_list("domain").alias("domains"))
-      .select("uid", "domains")
 
-    val model = PipelineModel.load(pipelinePath)
-    val testResult = model.transform(test)
+    def predict(df: DataFrame, id: Long): Unit = {
+      val test = df.withColumn("uid", col("value.uid"))
+        .withColumn("visit", explode(col("value.visits")))
+        .withColumn("url", col("visit").getItem("url"))
+        .withColumn("domain", getDomain2FromUrl(expr("parse_url(url, 'HOST')")))
+        .groupBy("uid")
+        .agg(collect_list("domain").alias("domains"))
+        .select("uid", "domains")
 
-    testResult
-      .withColumn("gender_age", col("prediction"))
-      .select(to_json(struct("uid", "gender_age")).alias("value"))
+      val model = PipelineModel.load(pipelinePath)
+      val testResult = model.transform(test)
+
+      testResult
+        .withColumn("gender_age", col("category"))
+        .select(to_json(struct("uid", "gender_age")).alias("value"))
+        .write
+        .format("kafka")
+        .mode("append")
+        .options(kafkaWriteParams)
+        .save()
+    }
+
+    val kafkaSink = test
       .writeStream
-      .format("kafka")
-      .outputMode("update")
-      .options(kafkaWriteParams)
-      .trigger(Trigger.ProcessingTime("10 seconds"))
-      .start()
-      .awaitTermination()
+      .foreachBatch((df, id) => predict(df, id))
+
+    kafkaSink.start().awaitTermination()
 
   }
 
