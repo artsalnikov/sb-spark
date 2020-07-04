@@ -55,7 +55,7 @@ object dashboard extends MainWithSpark {
     testResult
       .withColumn("gender_age", col("category"))
       .select("uid", "gender_age", "date")
-      .write.format("es").options(esOptions).save(s"$targetIndex-{date}/_doc")
+      .write.format("es").options(esOptions).save(s"$targetIndex/_doc")
 
   }
 
