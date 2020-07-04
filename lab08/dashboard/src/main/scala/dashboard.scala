@@ -1,7 +1,7 @@
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.functions._
 
-object test extends MainWithSpark {
+object dashboard extends MainWithSpark {
 
   val getDomain2FromUrl = udf{ url: String =>
     if (Option(url).nonEmpty) {
@@ -55,7 +55,7 @@ object test extends MainWithSpark {
     testResult
       .withColumn("gender_age", col("category"))
       .select("uid", "gender_age", "date")
-      .write.format("es").options(esOptions).save(s"$targetIndex-{date}")
+      .write.format("es").options(esOptions).save(s"$targetIndex-{date}/_doc")
 
   }
 
