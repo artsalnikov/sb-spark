@@ -54,8 +54,8 @@ object test extends MainWithSpark {
 
     testResult
       .withColumn("gender_age", col("category"))
-      .select("date", "gender_age")
-      .write.format("es").options(esOptions).save(s"$targetIndex-{date}/_doc")
+      .select("uid", "gender_age", "date")
+      .write.format("es").options(esOptions).save(s"$targetIndex-{date}")
 
   }
 
